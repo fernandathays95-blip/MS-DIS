@@ -1,0 +1,63 @@
+name: MS-DIS CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build MS-DIS Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build
+
+      - name: Build MS-DIS Compose module
+        run: |
+          echo "🏗️ Building ms-dis.compose..."
+          ./gradlew :ms-dis.compose:build --stacktrace
+
+      - name: Run tests
+        run: |
+          echo "🧪 Running tests for ms-dis.compose..."
+          ./gradlew :ms-dis.compose:test
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ms-dis-compose-artifacts
+          path: ms-dis.compose/build/libs/
+
+  lint:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run lint
+        run: |
+          echo "🔍 Running lint checks..."
+          ./gradlew :ms-dis.compose:lint
+
+      - name: Check formatting
+        run: |
+          echo "🧹 Checking code style..."
+          ./gradlew :ms-dis.compose:checkstyle
